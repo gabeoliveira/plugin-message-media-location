@@ -55,6 +55,21 @@ class MessageImageComponent extends Component {
           />
         </BubbleMessageWrapperDiv>
       );
+    } else if(
+      message.attributes &&
+      message.attributes.latitude &&
+      message.attributes.longitude
+    ){
+      return(
+        <BubbleMessageWrapperDiv>
+          <MediaMessageComponent
+            latitude={message.attributes.latitude}
+            longitude={message.attributes.longitude}
+            address={message.attributes.address}
+            mediaType="location"
+          />
+        </BubbleMessageWrapperDiv>
+      )
     }
 
     return <div />;

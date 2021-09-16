@@ -6,7 +6,7 @@
 
 # WhatsApp MMS for Flex WebChat
 
-The WhatsApp MMS for Flex Webchat plugin allows you to send a media message over WhatsApp and render it within a Flex chat window. Upon sending the message, any qualified agent will see an incoming chat request from a WhatsApp number following the `whatsapp:<E.164-formatted phone number>` format.
+The WhatsApp MMS for Flex Webchat plugin allows you to send and receive a media message over WhatsApp and render it within a Flex chat window. Upon sending the message, any qualified agent will see an incoming chat request from a WhatsApp number following the `whatsapp:<E.164-formatted phone number>` format. It also allows agents to receive the end user's location (only static location is supported at the moment)
 
 ## Setup
 
@@ -41,6 +41,9 @@ all the config values we need to run the plugin on your Flex application:
 | Chat Service SID | Unique identifier for your Flex Chat Service. You can find this on the [Programmable Chat Dashboard](https://www.twilio.com/console/chat/dashboard).                                    |
 | Twilio WhatsApp Number | The WhatsApp number to use when sending messages to a WhatsApp recipient. You can find this either on the [Twilio Sandbox for WhatsApp page](https://www.twilio.com/console/sms/whatsapp/learn) if you're using a test number, or the [WhatsApp Senders](https://www.twilio.com/console/sms/whatsapp/senders) if you've enabled personalized WhatsApp numbers.                                  |
 | Twilio SMS Number | A Twilio phone number with MMS capability. You can check your numbers in the [Phone Numbers Dashboard](https://www.twilio.com/console/phone-numbers/incoming). |
+| Sync Service SID | Unique identifier for a Sync Service. You can create a new one in the [Sync Dashboard](https://console.twilio.com/us1/develop/sync/overview). *Needed only for location messages*   |
+| Proxy Webhook URL | The URL currently being used to send WhatsApp messages to Flex. You can check it out in the [WhatsApp Sender Details](https://console.twilio.com/us1/develop/sms/senders/whatsapp-senders). (Alternatives for using a [Messaging Service](https://console.twilio.com/us1/develop/sms/services) or [WhatsApp Sandbox](https://console.twilio.com/us1/develop/sms/settings/whatsapp-sandbox)). *Needed only for location messages*   |
+| Google Maps API Key | API key used to render GPS coordinates on Flex. A free one can be created following the [official documentation](https://developers.google.com/maps/documentation/javascript/get-api-key) |
 
 ## Plugin Details
 
@@ -49,6 +52,10 @@ Twilio Proxy does not support media messages natively, so it is necessary to mon
 1) **mms-handler.protected.js**: This Twilio Function will be called every time a Proxy interaction occurs. It uses the Proxy Callback URI to check for the existence of an MMS in an incoming message.
 
 2) **send-media-message.js**: This Twilio Function is called by the Flex plugin to send the media to the recipient using the Programmable Messaging API. Since Proxy does not currently support media messages, we have to bypass it and call the Programmable Messaging API directly.
+
+Twilio Proxy also ignores location parameters when users send their GPS coordinates over Whatsapp, which are only available when a message event is triggered. Because of this, we need to add a middleware layer between Whatsapp and Twilio Proxy. To enable that middleware, we have added the following Twilio Function:
+
+1) **redirect.protected.js**: This function is called whenever a message comes in. It checks for GPS parameters, extract them to Twilio Sync (to be retrieved later by Flex) if found, and passes the message along to Twilio Proxy
 
 ## Local Development
 
@@ -197,6 +204,20 @@ We now need to configure the Proxy Callback URL to point to that Function.
 
 1. Click **Save** at the bottom of the Proxy Configuration page after entering the Callback URL.
 
+## Message Handler Configuration
+
+The final setup step is to make our **Redirect** function the primary handler. *This is required only if you need support for receiving location messages*
+
+1. Navigate to [Whatsapp Sender Settings](https://console.twilio.com/us1/develop/sms/senders/whatsapp-senders), [Whatsapp Sandbox Settings](https://console.twilio.com/us1/develop/sms/settings/whatsapp-sandbox) or [Messaging Service Settings](https://console.twilio.com/us1/develop/sms/services), depending on what messaging setup you are running
+
+1. Copy the primary handler (should be the **Twilio Proxy** URL formed for the first setup) to the Fallback URL. This will make sure messages still go to Flex even if our redirect function fails (**Note**: This is not available for Whatsapp Sandbox, which should not present as problem as this step is only for avoiding problems in production)
+
+1. Set the Webhook URL as the **Redirect Function URL** (https://[your twilio domain].twil.io/redirect)
+
+1. Save your settings
+
+![image thumbnail](screenshots/webhook-settings.png)
+
 ## Flex Plugin Deployment
 
 The WhatsApp MMS for Flex WebChat plugin allows customers to render MMS sent over WhatsApp in the Flex WebChat and allows the agent to send media files to customers from their computer. You can see a demo below of this plugin:
@@ -216,7 +237,7 @@ From the plugin root directory, run the following commands:
 $ npm i
 ```
 
-After that, create `.env.production` based on `.env.example`, and modify the `REACT_APP_SEND_MEDIA_ENDPOINT` property to the URL of the send-media-message.js function.
+After that, create `.env.production` based on `.env.example`, and modify the `REACT_APP_SEND_MEDIA_ENDPOINT` property to the URL of the send-media-message.js function and the `REACT_APP_GOOGLE_MAPS_API_KEY` property to your Google Maps API Key.
 
 ```javascript
 REACT_APP_SEND_MEDIA_ENDPOINT=https://your-functions-domain/send-media-message.js
@@ -245,10 +266,11 @@ MIT © Twilio Inc.
 
 ## Credits
 
-This plugin was based on the [mms2FlexChat plugin](https://github.com/jprix/mms2FlexChat). Many thanks to the original contributors:
+This plugin was based on the [media-message plugin](https://github.com/twilio-labs/plugin-media-messages). Many thanks to the original contributors:
 * [jprix](https://github.com/jprix)
 * [Terence Rogers](https://github.com/trogers-twilio)
 * [Brad McAllister](https://github.com/bdm1981)
+* [Vinicius Miguel](https://github.com/vmiguelsilva)
 
 ## License
 

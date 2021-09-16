@@ -20,3 +20,8 @@ export const PdfViewerWrapper = styled('div')`
 export const VideoPlayerWrapper = styled('div')`
   padding: 5px;
 `;
+
+export const MapsWrapper = styled('div')`
+  width: 50%;
+  height: 30vh;
+`;

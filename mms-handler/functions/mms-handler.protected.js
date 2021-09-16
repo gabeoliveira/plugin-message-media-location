@@ -41,6 +41,24 @@ const getApiUtils = (context) => {
   }
 }
 
+const updateFlexChatMessageWithLocation = async (context, event, data) => {
+  const { fetchSession, updateChatMessageMedia } = getApiUtils(context);
+
+  const sessionSid = event.interactionSessionSid;
+  const messageSid = event.outboundResourceSid;
+
+  const session = await fetchSession(sessionSid);
+  const channelSid = session.uniqueName.split('.')[0];
+
+  const updatedChatMessage = await updateChatMessageMedia(channelSid, messageSid, {
+    attributes: JSON.stringify(data)
+  });
+
+
+  console.log(updatedChatMessage);
+
+}
+
 const updateFlexChatMessageWithMMSMedia = async (context, event) => {
   const { fetchSession, fetchSubresourcesList, updateChatMessageMedia } = getApiUtils(context);
 
@@ -72,6 +90,29 @@ const updateFlexChatMessageWithMMSMedia = async (context, event) => {
 }
 
 exports.handler = async function(context, event, callback) {
+  const client = context.getTwilioClient();
+  const SYNC_SERVICE_SID = context. SYNC_SERVICE_SID;
+  var document;
+
+  console.log(event);
+
+  try{
+    document = await client.sync.services(SYNC_SERVICE_SID).documents('msg_' + event.inboundResourceSid).fetch();
+    console.log(document);
+  }
+
+  catch(err){
+    if(err.code == 20404){
+      console.log('Sync document not found');
+    }
+
+    else{
+      console.error(err);
+      throw new Error('Execution Error');
+    }
+  }
+  
+
   if (event.inboundResourceSid.includes('MM')) {
     try {
       await updateFlexChatMessageWithMMSMedia(context, event);
@@ -80,7 +121,23 @@ exports.handler = async function(context, event, callback) {
       console.error('An unexpected error occurred: ', err);
       callback(err);
     }
-  } else {
+  } 
+
+  else if(document) {
+    console.log('Location Message');
+
+    try {
+      await updateFlexChatMessageWithLocation(context, event, document.data);
+      callback(null);
+    } catch (err) {
+      console.error('An unexpected error occurred: ', err);
+      callback(err);
+    }
+
+
+  }
+
+  else {
     console.log('not MMS');
     callback(null);
   }

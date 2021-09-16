@@ -7,6 +7,7 @@ import LoadingComponent from './components/LoadingComponent/LoadingComponent';
 import BubbleMessageWrapper from "./components/BubbleMessageWrapper/BubbleMessageWrapper";
 import DropMediaComponent from './components/DropMediaComponent/DropMediaComponent';
 import ImageModal from "./components/ImageModal/ImageModal";
+import LocationModal from './components/LocationModal/LocationModal';
 import PasteMediaComponent from './components/PasteMediaComponent/PasteMediaComponent';
 import SendMediaComponent from './components/SendMediaComponent/SendMediaComponent';
 
@@ -38,12 +39,23 @@ export default class SmsMediaPlugin extends FlexPlugin {
       return Promise.resolve();
     });
 
+    flex.Actions.registerAction("locationModalControl", (payload) => {
+      var event = new Event("locationModalControlOpen");
+      event.location = payload.location;
+      document.dispatchEvent(event);
+      return Promise.resolve();
+    });
+
     // Unbind this action of the native attachments feature (this is under pilot yet).
     flex.Actions.replaceAction('AttachFile', (payload) => { return; });
 
     flex.MessageBubble.Content.add(<BubbleMessageWrapper key="image" />);
 
     flex.MainContainer.Content.add(<ImageModal key="imageModal" />, {
+      sortOrder: 1
+    });
+
+    flex.MainContainer.Content.add(<LocationModal key="locationModal" />, {
       sortOrder: 1
     });
 

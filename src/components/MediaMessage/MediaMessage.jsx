@@ -2,14 +2,29 @@ import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 
 import * as Flex from '@twilio/flex-ui';
+import GoogleMapReact from 'google-map-react';
+import LocationPin from '../LocationModal/LocationPin';
+
+
 import {
   ImageWrapper,
   AudioPlayerWrapper,
   PdfViewerWrapper,
-  VideoPlayerWrapper
+  VideoPlayerWrapper,
+  MapsWrapper
 } from './MediaMessage.Styles';
 
+const {Button} = Flex;
+
 class MediaMessageComponent extends Component {
+
+  googleMapsApiKey = process.env.REACT_APP_GOOGLE_MAPS_API_KEY;
+
+  handleLocationClick = (e) => {
+    const target = e.target;
+    console.log(target);
+  }
+
   renderImage = () => {
     const { mediaUrl } = this.props;
 
@@ -72,6 +87,39 @@ class MediaMessageComponent extends Component {
     );
   };
 
+  renderLocation = () => {
+    
+    const location = {
+      lat: parseFloat(this.props.latitude),
+      lng: parseFloat(this.props.longitude),
+      address: this.props.address
+    }
+
+    return (
+      <div>
+        <div style={{ height: '10vh', width: '100%' }}>
+          <GoogleMapReact
+              bootstrapURLKeys={{ key: this.googleMapsApiKey }}
+              defaultCenter={location}
+              defaultZoom={15}
+          >
+              <LocationPin
+                  lat={location.lat}
+                  lng={location.lng}
+                  text={location.address}
+              />
+          </GoogleMapReact>
+        </div>
+        <React.Fragment>
+          <Button onClick={() => Flex.Actions.invokeAction('locationModalControl', {
+                  location: location
+                })}>
+            Show location
+          </Button>
+        </React.Fragment>
+    </div>)
+  }
+
   render() {
     const { mediaType } = this.props;
 
@@ -87,6 +135,9 @@ class MediaMessageComponent extends Component {
         return this.renderPdfViewer();
       case 'video/mp4':
         return this.renderVideoPlayer();
+
+      case 'location':
+        return this.renderLocation()
       default:
         return <div />;
     }
@@ -94,8 +145,7 @@ class MediaMessageComponent extends Component {
 }
 
 MediaMessageComponent.propTypes = {
-  mediaType: PropTypes.string.isRequired,
-  mediaUrl: PropTypes.string.isRequired
+  mediaType: PropTypes.string.isRequired
 };
 
 export default MediaMessageComponent;
